@@ -23,7 +23,7 @@ namespace XlsCore.Demo
 
             var readOptions3 = new ReadOptions(new CellAddress("A", "1"));
 
-            var reader = new XlsReader(file2, readOptions2);
+            using var reader = new XlsReader(file2, readOptions2);
             var result = reader.ReadTable("",
                 x => { Console.WriteLine($"Header: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); },
                 x => { Console.WriteLine($"Body: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); });
