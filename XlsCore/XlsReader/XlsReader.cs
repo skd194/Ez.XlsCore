@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace Ez.XlsCore
 {
-    public partial class SpreadSheetReader : IDisposable
+    public partial class XlsReader : IDisposable
     {
         private readonly SpreadsheetDocument _spreadsheetDocument;
 
@@ -22,7 +22,7 @@ namespace Ez.XlsCore
 
         private HeaderRowContext _headerRowContext;
 
-        public SpreadSheetReader(string path, ReadOptions options)
+        public XlsReader(string path, ReadOptions options)
         {
             _spreadsheetDocument = SpreadsheetDocument.Open(path, false);
             _workbookPart = _spreadsheetDocument.WorkbookPart;
@@ -66,7 +66,8 @@ namespace Ez.XlsCore
                 {
                     var result = ReadRow(reader, _headerRowContext.Count);
                     var rowContext = new RowContext(rowIndex, result.IsEmpty, result.Cells);
-                    if (_readOptions.RowTerminationCondition(_headerRowContext, rowContext))
+                    if (_readOptions.HasRowTerminationCondition &&
+                        _readOptions.RowTerminationCondition(_headerRowContext, rowContext))
                     {
                         if (!rowContext.IsEmpty)
                         {
@@ -108,24 +109,38 @@ namespace Ez.XlsCore
         {
             var cells = new List<CellContext>();
             var isRowEmpty = true;
-            var startColumnRead = false;
+            var startCellRead = false;
+            var stopCellRead = false;
             var itemCount = 1;
             do
             {
-                if (rowItemsCount.HasValue && itemCount > rowItemsCount.Value) continue;
+                if (stopCellRead) continue;
+                if (rowItemsCount.HasValue &&
+                    itemCount > rowItemsCount.Value &&
+                    !_readOptions.HasColumnTerminationCondition)
+                {
+                    continue;
+                }
                 if (reader.ElementType != typeof(Cell)) continue;
                 var cell = (Cell)reader.LoadCurrentElement();
                 var columnReference = GetColumnReference(cell);
-                if (!startColumnRead && IsContentStartColumn(columnReference)) startColumnRead = true;
-                if (startColumnRead)
+                var columnIndex = GetColumnIndex(columnReference);
+                if (!startCellRead && IsContentStartColumn(columnIndex)) startCellRead = true;
+                if (startCellRead)
                 {
                     var value = GetCellRawValue(cell);
-                    var cellContext = new CellContext(value, columnReference, string.IsNullOrEmpty(value));
-                    cells.Add(cellContext);
-                    if (_readOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
+                    var cellContext = new CellContext(
+                        value,
+                        columnReference,
+                        string.IsNullOrEmpty(value),
+                        columnIndex);
+                    if (_readOptions.HasColumnTerminationCondition &&
+                        _readOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
                     {
-                        SkipStream(reader);
+                        stopCellRead = true;
+                        continue;
                     }
+                    cells.Add(cellContext);
                     if (!cellContext.IsEmpty) isRowEmpty = false;
                     itemCount++;
                 }
@@ -139,9 +154,9 @@ namespace Ez.XlsCore
                 ? _sharedStrings[int.Parse(cell.CellValue.InnerText)]
                 : cell.CellValue?.InnerText;
 
-        private bool IsContentStartColumn(string columnReference)
+        private bool IsContentStartColumn(int columnIndex)
         {
-            return GetColumnIndex(columnReference) >= GetColumnIndex(_readOptions.StartAddress.Column);
+            return columnIndex >= GetColumnIndex(_readOptions.StartAddress.Column);
         }
 
         private static string GetColumnReference(CellType cell) =>

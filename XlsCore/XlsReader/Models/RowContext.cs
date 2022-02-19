@@ -22,7 +22,7 @@ namespace Ez.XlsCore
         public bool IsEmpty { get; }
 
         public IReadOnlyCollection<CellContext> Cells => _cells.Values;
-        public bool TeyGetCellContext(string columReferece, out CellContext cellContext) =>
+        public bool TryGetCellContext(string columReferece, out CellContext cellContext) =>
             _cells.TryGetValue(columReferece, out cellContext);
 
     }

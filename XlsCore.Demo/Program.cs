@@ -14,13 +14,16 @@ namespace XlsCore.Demo
 
             var readOptions1 = new ReadOptions(
                 new CellAddress("A", "1"),
-                (headerRow, bodyRow) => bodyRow.TeyGetCellContext("C", out var cellContext) && cellContext.Value == "Ben100");
+                (headerRow, bodyRow) => bodyRow.TryGetCellContext("C", out var cellContext) && cellContext.Value == "Ben100");
 
-            var readOptions2 = new ReadOptions(new CellAddress("C", "4"), (headerRow, bodyRow) => bodyRow.IsEmpty);
+            var readOptions2 = new ReadOptions(
+                new CellAddress("A", "1"),
+                (headerRow, bodyRow) => bodyRow.IsEmpty,
+                null);
 
             var readOptions3 = new ReadOptions(new CellAddress("A", "1"));
 
-            var reader = new SpreadSheetReader(file2, readOptions2);
+            var reader = new XlsReader(file2, readOptions2);
             var result = reader.ReadTable("",
                 x => { Console.WriteLine($"Header: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); },
                 x => { Console.WriteLine($"Body: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); });
