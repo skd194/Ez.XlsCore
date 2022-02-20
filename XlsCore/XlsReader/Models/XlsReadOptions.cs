@@ -2,20 +2,25 @@
 
 namespace Ez.XlsCore
 {
-    public class ReadOptions
+    public class XlsReadOptions
     {
-        public ReadOptions(CellAddress startAddress)
+        public XlsReadOptions()
+            : this(new CellAddress("A", "1"))
+        {
+        }
+
+        public XlsReadOptions(CellAddress startAddress)
             : this(startAddress, null, null)
         {
         }
 
-        public ReadOptions(CellAddress startAddress,
+        public XlsReadOptions(CellAddress startAddress,
             Func<HeaderRowContext, RowContext, bool> rowTerminationCondition)
            : this(startAddress, rowTerminationCondition, null)
         {
         }
 
-        public ReadOptions(
+        public XlsReadOptions(
             CellAddress startAddress,
             Func<HeaderRowContext, RowContext, bool> rowTerminationCondition,
             Func<HeaderRowContext, CellContext, bool> columnTerminationCondition)

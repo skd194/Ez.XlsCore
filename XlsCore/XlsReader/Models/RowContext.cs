@@ -22,8 +22,8 @@ namespace Ez.XlsCore
         public bool IsEmpty { get; }
 
         public IReadOnlyCollection<CellContext> Cells => _cells.Values;
-        public bool TryGetCellContext(string columReferece, out CellContext cellContext) =>
-            _cells.TryGetValue(columReferece, out cellContext);
+        public bool TryGetCellContext(string columnReference, out CellContext cellContext) =>
+            _cells.TryGetValue(columnReference, out cellContext);
 
     }
 }

@@ -8,36 +8,33 @@ using System.Text.RegularExpressions;
 
 namespace Ez.XlsCore
 {
-    public partial class XlsReader : IDisposable
+    public class XlsReader : IDisposable
     {
         private readonly SpreadsheetDocument _spreadsheetDocument;
 
-        private readonly WorkbookPart _workbookPart;
-
         private readonly WorksheetPart _worksheetPart;
 
-        private readonly ReadOptions _readOptions;
+        private readonly XlsReadOptions _xlsReadOptions;
 
         private readonly string[] _sharedStrings;
 
         private HeaderRowContext _headerRowContext;
 
-        public XlsReader(string path, ReadOptions options)
+        public XlsReader(string path, XlsReadOptions options)
         {
             _spreadsheetDocument = SpreadsheetDocument.Open(path, false);
-            _workbookPart = _spreadsheetDocument.WorkbookPart;
-            _worksheetPart = _workbookPart.WorksheetParts.First();
-            _sharedStrings = _workbookPart.SharedStringTablePart.SharedStringTable
+            var workbookPart = _spreadsheetDocument.WorkbookPart;
+            _worksheetPart = workbookPart.WorksheetParts.First();
+            _sharedStrings = workbookPart.SharedStringTablePart.SharedStringTable
                 .Elements<SharedStringItem>()
                 .Select(x => x.Text.Text)
                 .ToArray();
-            _readOptions = options ?? throw new ArgumentNullException(nameof(options));
+            _xlsReadOptions = options ?? throw new ArgumentNullException(nameof(options));
         }
 
-        private bool IsContentStartRowIndex(string rowIndex) => rowIndex == _readOptions.StartAddress.Row;
+        private bool IsContentStartRowIndex(string rowIndex) => rowIndex == _xlsReadOptions.StartAddress.Row;
 
         public TableResult ReadTable(
-            string sheetName,
             Action<HeaderRowContext> headerRowAction,
             Action<RowContext> bodyRowAction)
         {
@@ -66,8 +63,8 @@ namespace Ez.XlsCore
                 {
                     var result = ReadRow(reader, _headerRowContext.Count);
                     var rowContext = new RowContext(rowIndex, result.IsEmpty, result.Cells);
-                    if (_readOptions.HasRowTerminationCondition &&
-                        _readOptions.RowTerminationCondition(_headerRowContext, rowContext))
+                    if (_xlsReadOptions.HasRowTerminationCondition &&
+                        _xlsReadOptions.RowTerminationCondition(_headerRowContext, rowContext))
                     {
                         if (!rowContext.IsEmpty)
                         {
@@ -117,7 +114,7 @@ namespace Ez.XlsCore
                 if (stopCellRead) continue;
                 if (rowItemsCount.HasValue &&
                     itemCount > rowItemsCount.Value &&
-                    !_readOptions.HasColumnTerminationCondition)
+                    !_xlsReadOptions.HasColumnTerminationCondition)
                 {
                     continue;
                 }
@@ -134,8 +131,8 @@ namespace Ez.XlsCore
                         columnReference,
                         string.IsNullOrEmpty(value),
                         columnIndex);
-                    if (_readOptions.HasColumnTerminationCondition &&
-                        _readOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
+                    if (_xlsReadOptions.HasColumnTerminationCondition &&
+                        _xlsReadOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
                     {
                         stopCellRead = true;
                         continue;
@@ -156,7 +153,7 @@ namespace Ez.XlsCore
 
         private bool IsContentStartColumn(int columnIndex)
         {
-            return columnIndex >= GetColumnIndex(_readOptions.StartAddress.Column);
+            return columnIndex >= GetColumnIndex(_xlsReadOptions.StartAddress.Column);
         }
 
         private static string GetColumnReference(CellType cell) =>
