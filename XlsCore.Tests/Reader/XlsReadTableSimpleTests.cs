@@ -32,7 +32,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckHeaderRowIndex()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
             using var reader = new XlsReader(_fileName, readOptions);
             string headerRow = null;
             reader.ReadTable(
@@ -44,7 +44,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckHeaderCellValues()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
             using var reader = new XlsReader(_fileName, readOptions);
             string[] headerCellValues = null;
             reader.ReadTable(
@@ -57,7 +57,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckBodyRows()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
 
             using var reader = new XlsReader(_fileName, readOptions);
 
@@ -73,7 +73,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckBodyColumns()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
 
             using var reader = new XlsReader(_fileName, readOptions);
 
@@ -89,7 +89,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_ReturnBodyRowCount()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
 
             using var reader = new XlsReader(_fileName, readOptions);
 
@@ -101,7 +101,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckColumnIndex()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
 
             using var reader = new XlsReader(_fileName, readOptions);
 
@@ -116,7 +116,7 @@ namespace XlsCore.Tests
         [Test]
         public void ReadTable_WhenCalled_WithNoTerminationConditions_CheckBodyDecimalColumnValue()
         {
-            var readOptions = new XlsReadOptions();
+            var readOptions = new XlsTableReadOptions();
             using var reader = new XlsReader(_fileName, readOptions);
             var bodyColumnValues = new List<string>();
             reader.ReadTable(

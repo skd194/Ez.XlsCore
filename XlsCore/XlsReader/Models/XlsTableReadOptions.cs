@@ -2,25 +2,27 @@
 
 namespace Ez.XlsCore
 {
-    public class XlsReadOptions
+    public class XlsTableReadOptions
     {
-        public XlsReadOptions()
+        public static XlsTableReadOptions Default => new XlsTableReadOptions();
+
+        public XlsTableReadOptions()
             : this(new CellAddress("A", "1"))
         {
         }
 
-        public XlsReadOptions(CellAddress startAddress)
+        public XlsTableReadOptions(CellAddress startAddress)
             : this(startAddress, null, null)
         {
         }
 
-        public XlsReadOptions(CellAddress startAddress,
+        public XlsTableReadOptions(CellAddress startAddress,
             Func<HeaderRowContext, RowContext, bool> rowTerminationCondition)
            : this(startAddress, rowTerminationCondition, null)
         {
         }
 
-        public XlsReadOptions(
+        public XlsTableReadOptions(
             CellAddress startAddress,
             Func<HeaderRowContext, RowContext, bool> rowTerminationCondition,
             Func<HeaderRowContext, CellContext, bool> columnTerminationCondition)

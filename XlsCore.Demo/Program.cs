@@ -9,25 +9,35 @@ namespace XlsCore.Demo
         static void Main(string[] args)
         {
             var file1 = @"C:\Users\SkS\source\repos\ExcelSample\ExcelSample\files\sample.xlsx";
-            var file2 = @"C:\Users\SkS\Desktop\MyWork\Ez.XlsCore\XlsCore.Tests\Reader\XlsFiles\SimpleTable.xlsx";
 
+            var file2 = @"C:\Users\SkS\source\repos\ExcelSample\ExcelSample\files\excelwritefile.xlsx";
 
-            var readOptions1 = new XlsReadOptions(
+            var readOptions1 = new XlsTableReadOptions(
                 new CellAddress("A", "1"),
                 (headerRow, bodyRow) => bodyRow.TryGetCellContext("C", out var cellContext) && cellContext.Value == "Ben100");
 
-            var readOptions2 = new XlsReadOptions(
+            var readOptions2 = new XlsTableReadOptions(
                 new CellAddress("A", "1"),
                 (headerRow, bodyRow) => bodyRow.IsEmpty,
                 null);
 
-            var readOptions3 = new XlsReadOptions(new CellAddress("B", "2"));
+            var readOptions3 = new XlsTableReadOptions(new CellAddress("B", "2"));
 
-            using var reader = new XlsReader(file2, readOptions2);
+            using var reader = new XlsReader(file1)
+            {
+                HeaderRowAction = x =>
+                {
+                    Console.WriteLine($"Header: {x.Count} " + string.Join(",",
+                        x.Cells.Select(context => $"{context.ColumnReference}|{context.Value}")));
+                },
+                BodyRowAction = x =>
+                {
+                    Console.WriteLine($"Body: {x.Count} " + string.Join(",",
+                        x.Cells.Select(context => $"{context.ColumnReference}|{context.Value}")));
+                }
+            };
 
-            var result = reader.ReadTable(
-                x => { Console.WriteLine($"Header: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); },
-                x => { Console.WriteLine($"Body: {x.Count} " + string.Join(",", x.Cells.Select(x => $"{x.ColumnReference}|{x.Value}"))); });
+            var result = reader.ReadTable("Second Sheet with name", readOptions2);
 
             Console.WriteLine();
             Console.WriteLine(result.BodyRowCount);

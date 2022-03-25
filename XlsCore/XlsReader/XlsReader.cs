@@ -10,35 +10,44 @@ namespace Ez.XlsCore
 {
     public class XlsReader : IDisposable
     {
+        private readonly string[] _sharedStrings;
+        private readonly WorkbookPart _workbookPart;
         private readonly SpreadsheetDocument _spreadsheetDocument;
 
-        private readonly WorksheetPart _worksheetPart;
-
-        private readonly XlsReadOptions _xlsReadOptions;
-
-        private readonly string[] _sharedStrings;
-
         private HeaderRowContext _headerRowContext;
+        private XlsTableReadOptions _xlsTableReadOptions;
 
-        public XlsReader(string path, XlsReadOptions options)
+        public IReadOnlyCollection<SheetContext> Sheets { get; }
+        public Action<RowContext> BodyRowAction { get; set; }
+        public Action<HeaderRowContext> HeaderRowAction { get; set; }
+
+        public XlsReader(string path)
         {
             _spreadsheetDocument = SpreadsheetDocument.Open(path, false);
-            var workbookPart = _spreadsheetDocument.WorkbookPart;
-            _worksheetPart = workbookPart.WorksheetParts.First();
-            _sharedStrings = workbookPart.SharedStringTablePart.SharedStringTable
-                .Elements<SharedStringItem>()
-                .Select(x => x.Text.Text)
-                .ToArray();
-            _xlsReadOptions = options ?? throw new ArgumentNullException(nameof(options));
+            _workbookPart = _spreadsheetDocument.WorkbookPart;
+            _sharedStrings = GetSharedStrings(_workbookPart);
+            Sheets = GetSheets(_workbookPart);
         }
 
-        private bool IsContentStartRowIndex(string rowIndex) => rowIndex == _xlsReadOptions.StartAddress.Row;
-
-        public TableResult ReadTable(
-            Action<HeaderRowContext> headerRowAction,
-            Action<RowContext> bodyRowAction)
+        public TableResult ReadTable(int sheetNumber, XlsTableReadOptions options)
         {
-            var reader = OpenXmlReader.Create(_worksheetPart);
+            var sheet = Sheets.SingleOrDefault(x => x.Number == sheetNumber);
+            if (sheet == null) throw new InvalidOperationException("Invalid sheet number");
+            return ReadTable(options, sheet.Id);
+        }
+
+        public TableResult ReadTable(string sheetName, XlsTableReadOptions options)
+        {
+            var sheet = Sheets.SingleOrDefault(x => x.Name == sheetName);
+            if (sheet == null) throw new InvalidOperationException("Invalid sheet name");
+            return ReadTable(options, sheet.Id);
+        }
+
+        private TableResult ReadTable(XlsTableReadOptions options, string sheetId)
+        {
+            var worksheetPart = _workbookPart.GetPartById(sheetId);
+            var reader = OpenXmlReader.Create(worksheetPart);
+            _xlsTableReadOptions = options ?? XlsTableReadOptions.Default;
             var skipRow = true;
             var bodyRowCount = 0;
             while (reader.Read())
@@ -51,7 +60,7 @@ namespace Ez.XlsCore
                     if (IsContentStartRowIndex(rowIndex))
                     {
                         _headerRowContext = ReadHeaderRow(reader, rowIndex);
-                        headerRowAction(_headerRowContext);
+                        HeaderRowAction?.Invoke(_headerRowContext);
                         skipRow = false;
                     }
                     else
@@ -63,25 +72,55 @@ namespace Ez.XlsCore
                 {
                     var result = ReadRow(reader, _headerRowContext.Count);
                     var rowContext = new RowContext(rowIndex, result.IsEmpty, result.Cells);
-                    if (_xlsReadOptions.HasRowTerminationCondition &&
-                        _xlsReadOptions.RowTerminationCondition(_headerRowContext, rowContext))
+                    if (_xlsTableReadOptions.HasRowTerminationCondition &&
+                        _xlsTableReadOptions.RowTerminationCondition(_headerRowContext, rowContext))
                     {
                         if (!rowContext.IsEmpty)
                         {
                             bodyRowCount++;
-                            bodyRowAction(rowContext);
+                            BodyRowAction?.Invoke(rowContext);
                         }
+
                         break;
                     }
+
                     bodyRowCount++;
-                    bodyRowAction(rowContext);
+                    BodyRowAction?.Invoke(rowContext);
                 }
             }
+
             return new TableResult(bodyRowCount);
         }
+        private static string[] GetSharedStrings(WorkbookPart workbookPart)
+        {
+            return workbookPart.SharedStringTablePart
+                       ?.SharedStringTable
+                       .Elements<SharedStringItem>()
+                       .Select(x => x.Text.Text)
+                       .ToArray()
+                   ?? Array.Empty<string>();
+        }
+        private static SheetContext[] GetSheets(WorkbookPart workbookPart)
+        {
+            return workbookPart.Workbook.Sheets
+                .Cast<Sheet>()
+                .Select((sheet, index) => new SheetContext(sheet.Id, index + 1, sheet.Name))
+                .ToArray();
+        }
 
-        private static string GetRowIndex(OpenXmlReader reader) =>
-            reader.Attributes.Single(x => x.LocalName == "r").Value;
+        private static string GetRowIndex(OpenXmlReader reader)
+        {
+            var row = reader.Attributes.SingleOrDefault(x => x.LocalName == "r");
+            return row == default
+                ? throw new InvalidOperationException(
+                    "UnorderedExcelReadNotSupported." +
+                    "File data is not ordered explicitly. " +
+                    "Reader currently only supports excel file with proper row and cell positioning")
+                : row.Value;
+        }
+
+        private bool IsContentStartRowIndex(string rowIndex) =>
+            rowIndex == _xlsTableReadOptions.StartAddress.Row;
 
         private HeaderRowContext ReadHeaderRow(
             OpenXmlReader reader,
@@ -114,7 +153,7 @@ namespace Ez.XlsCore
                 if (stopCellRead) continue;
                 if (rowItemsCount.HasValue &&
                     itemCount > rowItemsCount.Value &&
-                    !_xlsReadOptions.HasColumnTerminationCondition)
+                    !_xlsTableReadOptions.HasColumnTerminationCondition)
                 {
                     continue;
                 }
@@ -131,8 +170,8 @@ namespace Ez.XlsCore
                         columnReference,
                         string.IsNullOrEmpty(value),
                         columnIndex);
-                    if (_xlsReadOptions.HasColumnTerminationCondition &&
-                        _xlsReadOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
+                    if (_xlsTableReadOptions.HasColumnTerminationCondition &&
+                        _xlsTableReadOptions.ColumnTerminationCondition(_headerRowContext, cellContext))
                     {
                         stopCellRead = true;
                         continue;
@@ -151,10 +190,8 @@ namespace Ez.XlsCore
                 ? _sharedStrings[int.Parse(cell.CellValue.InnerText)]
                 : cell.CellValue?.InnerText;
 
-        private bool IsContentStartColumn(int columnIndex)
-        {
-            return columnIndex >= GetColumnIndex(_xlsReadOptions.StartAddress.Column);
-        }
+        private bool IsContentStartColumn(int columnIndex) =>
+            columnIndex >= GetColumnIndex(_xlsTableReadOptions.StartAddress.Column);
 
         private static string GetColumnReference(CellType cell) =>
             Regex.Replace(cell.CellReference.Value.ToUpper(), @"[\d]", string.Empty);
@@ -162,12 +199,12 @@ namespace Ez.XlsCore
         private static int GetColumnIndex(string columnReference)
         {
             if (string.IsNullOrEmpty(columnReference)) return -1;
-            int columnNumber = 0;
-            int mulitplier = 1;
-            foreach (char c in columnReference.ToCharArray().Reverse())
+            var columnNumber = 0;
+            var multiplier = 1;
+            foreach (var c in columnReference.ToCharArray().Reverse())
             {
-                columnNumber += mulitplier * c - 64;
-                mulitplier *= 26;
+                columnNumber += multiplier * c - 64;
+                multiplier *= 26;
             }
             return columnNumber;
         }
