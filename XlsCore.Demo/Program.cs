@@ -37,7 +37,7 @@ namespace XlsCore.Demo
                 }
             };
 
-            //var result = reader.ReadTable("Second Sheet with name", readOptions2);
+            var result = reader.ReadTable("Second Sheet with name", readOptions2);
 
             //var result2 = reader.ReadTableFromSheets(x => true, readOptions2);
 

@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -24,6 +25,14 @@ namespace Ez.XlsCore
         public XlsReader(string path)
         {
             _spreadsheetDocument = SpreadsheetDocument.Open(path, false);
+            _workbookPart = _spreadsheetDocument.WorkbookPart;
+            _sharedStrings = GetSharedStrings(_workbookPart);
+            Sheets = GetSheets(_workbookPart);
+        }
+
+        public XlsReader(Stream stream)
+        {
+            _spreadsheetDocument = SpreadsheetDocument.Open(stream, false);
             _workbookPart = _spreadsheetDocument.WorkbookPart;
             _sharedStrings = GetSharedStrings(_workbookPart);
             Sheets = GetSheets(_workbookPart);

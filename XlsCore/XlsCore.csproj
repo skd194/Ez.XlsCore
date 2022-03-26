@@ -3,10 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Ez.XlsCore</RootNamespace>
+    <Version>1.0.0-alpha01</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>SkS</Authors>
+    <Company>Ez4Code</Company>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="2.15.0" />
   </ItemGroup>
-
 </Project>
