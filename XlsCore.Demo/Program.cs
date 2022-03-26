@@ -37,10 +37,27 @@ namespace XlsCore.Demo
                 }
             };
 
-            var result = reader.ReadTable("Second Sheet with name", readOptions2);
+            //var result = reader.ReadTable("Second Sheet with name", readOptions2);
+
+            //var result2 = reader.ReadTableFromSheets(x => true, readOptions2);
 
             Console.WriteLine();
-            Console.WriteLine(result.BodyRowCount);
+            //Console.WriteLine(result2.BodyRowCount);
         }
+
+        //public TableResult ReadTableFromSheets(Func<SheetContext, bool> sheetSelector, XlsTableReadOptions options)
+        //{
+        //    var sheets = Sheets.Where(sheetSelector).ToArray();
+        //    if (!sheets.Any()) return new TableResult(0);
+        //    var firstSheet = sheets[0];
+        //    var bodyRowCount = ReadTableById(firstSheet.Id, options).BodyRowCount;
+        //    for (var i = 1; i < sheets.Length; i++)
+        //    {
+        //        var sheet = sheets[i];
+        //        bodyRowCount += ReadTableById(sheet.Id, options).BodyRowCount;
+        //    }
+        //    return new TableResult(bodyRowCount);
+        //}
+
     }
 }

@@ -32,18 +32,25 @@ namespace Ez.XlsCore
         public TableResult ReadTable(int sheetNumber, XlsTableReadOptions options)
         {
             var sheet = Sheets.SingleOrDefault(x => x.Number == sheetNumber);
-            if (sheet == null) throw new InvalidOperationException("Invalid sheet number");
-            return ReadTable(options, sheet.Id);
+            return sheet == null
+                ? throw new InvalidOperationException("Invalid sheet number")
+                : ReadTableById(sheet.Id, options);
         }
 
         public TableResult ReadTable(string sheetName, XlsTableReadOptions options)
         {
             var sheet = Sheets.SingleOrDefault(x => x.Name == sheetName);
-            if (sheet == null) throw new InvalidOperationException("Invalid sheet name");
-            return ReadTable(options, sheet.Id);
+            return sheet == null
+                ? throw new InvalidOperationException("Invalid sheet name")
+                : ReadTableById(sheet.Id, options);
         }
 
-        private TableResult ReadTable(XlsTableReadOptions options, string sheetId)
+        public TableResult ReadTable(SheetContext sheet, XlsTableReadOptions options)
+        {
+            return ReadTableById(sheet.Id, options);
+        }
+
+        private TableResult ReadTableById(string sheetId, XlsTableReadOptions options)
         {
             var worksheetPart = _workbookPart.GetPartById(sheetId);
             var reader = OpenXmlReader.Create(worksheetPart);
